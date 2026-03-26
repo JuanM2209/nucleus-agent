@@ -1,0 +1,17 @@
+[package]
+name = "nucleus-agent"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+nucleus-common = { path = "../nucleus-common" }
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = { version = "0.24", features = ["rustls-tls-native-roots"] }
+futures-util = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+bytes = "1"
+sysinfo = "0.31"

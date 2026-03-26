@@ -1,0 +1,16 @@
+[server]
+url = "wss://api.nucleus.io/ws/agent"
+token = "your-device-auth-token"
+
+[heartbeat]
+interval_secs = 30
+
+[discovery]
+passive_interval_secs = 300
+active_enabled = false
+arp_rate_pps = 2
+port_scan_ports = [22, 80, 443, 502, 1880, 4840, 9090, 44818, 47808]
+port_scan_timeout_ms = 2000
+
+[tunnel]
+max_concurrent = 10
