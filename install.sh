@@ -1,13 +1,10 @@
 #!/bin/bash
 # Nucleus Agent vr23 — One-line installer for ARM devices (N-1065 Tyrion boards)
-# Usage: curl -fsSL https://raw.githubusercontent.com/JuanM2209/nucleus-portal/master/scripts/install-agent.sh | bash
-#
-# Environment variables (set before running):
-#   AGENT_TOKEN     — Device UUID (required if not using default)
-#   AGENT_SERVER_URL — WebSocket endpoint (default: wss://api.datadesng.com/ws/agent)
+# Usage: curl -fsSL https://raw.githubusercontent.com/JuanM2209/nucleus-agent/main/install.sh | bash
 set -e
 
-AGENT_IMAGE="ghcr.io/juanm2209/nucleus-agent:vr23"
+IMAGE="ghcr.io/juanm2209/nucleus-agent:vr23"
+RELEASE_URL="https://github.com/JuanM2209/nucleus-agent/releases/download/vr23/nucleus-agent-vr23.tar.gz"
 CONTAINER_NAME="nucleus-agent"
 DEVICE_ID="${AGENT_TOKEN:-}"
 SERVER_URL="${AGENT_SERVER_URL:-wss://api.datadesng.com/ws/agent}"
@@ -17,7 +14,7 @@ echo "║   Nucleus Agent vr23 Installer        ║"
 echo "╚═══════════════════════════════════════╝"
 echo ""
 
-# Auto-detect device ID from factory serial if not provided
+# Auto-detect device ID from factory serial
 if [ -z "$DEVICE_ID" ]; then
   if [ -f /data/nucleus/factory/nucleus_serial_number ]; then
     DEVICE_ID=$(cat /data/nucleus/factory/nucleus_serial_number)
@@ -31,35 +28,22 @@ fi
 
 echo "Device:  ${DEVICE_ID}"
 echo "Server:  ${SERVER_URL}"
-echo "Image:   ${AGENT_IMAGE}"
+echo "Image:   ${IMAGE}"
 echo ""
 
-# Detect architecture
-ARCH=$(uname -m)
-echo "[1/5] Architecture: ${ARCH}"
-if [ "$ARCH" != "armv7l" ] && [ "$ARCH" != "aarch64" ] && [ "$ARCH" != "x86_64" ]; then
-  echo "WARNING: Unsupported architecture ${ARCH}. Image is built for armv7l."
-fi
+echo "[1/4] Downloading agent image..."
+curl -fsSL "${RELEASE_URL}" -o /tmp/nucleus-agent-vr23.tar.gz
+docker load < /tmp/nucleus-agent-vr23.tar.gz
+rm -f /tmp/nucleus-agent-vr23.tar.gz
 
-# Pull image (public registry, no auth needed)
-echo "[2/5] Pulling ${AGENT_IMAGE}..."
-docker pull "${AGENT_IMAGE}" || {
-  echo "Pull failed. Trying with authentication..."
-  echo "Please run: docker login ghcr.io"
-  exit 1
-}
-
-# Stop old agent (any version)
-echo "[3/5] Stopping old agent..."
+echo "[2/4] Stopping old agent..."
 docker stop "${CONTAINER_NAME}" 2>/dev/null || true
 docker rm "${CONTAINER_NAME}" 2>/dev/null || true
 
-# Create config directory
-echo "[4/5] Preparing config..."
+echo "[3/4] Preparing config..."
 mkdir -p /etc/nucleus
 
-# Start new agent
-echo "[5/5] Starting agent vr23..."
+echo "[4/4] Starting agent vr23..."
 docker run -d \
   --name "${CONTAINER_NAME}" \
   --restart unless-stopped \
@@ -71,7 +55,7 @@ docker run -d \
   -v /sys/class/net:/sys/class/net:ro \
   -e AGENT_SERVER_URL="${SERVER_URL}" \
   -e AGENT_TOKEN="${DEVICE_ID}" \
-  "${AGENT_IMAGE}"
+  "${IMAGE}"
 
 echo ""
 echo "╔═══════════════════════════════════════╗"
@@ -79,4 +63,3 @@ echo "║   Agent vr23 deployed successfully    ║"
 echo "╚═══════════════════════════════════════╝"
 echo "Status:  $(docker inspect -f '{{.State.Status}}' ${CONTAINER_NAME} 2>/dev/null)"
 echo "Logs:    docker logs -f ${CONTAINER_NAME}"
-echo "Update:  curl -fsSL https://raw.githubusercontent.com/JuanM2209/nucleus-portal/master/scripts/install-agent.sh | bash"
